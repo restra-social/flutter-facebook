@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import com.facebook.*
 import com.facebook.GraphRequest.newGraphPathRequest
 import com.facebook.login.LoginManager
@@ -22,16 +21,12 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
-import java.util.*
-import org.json.JSONObject
 import org.json.JSONArray
-import java.util.ArrayList
-import org.json.JSONException
-import java.util.HashMap
+import org.json.JSONObject
+import java.util.*
 
 
-
-private val channelName  = "plugins.flutter.io/facebook"
+private val channelName = "plugins.flutter.io/facebook"
 private val methodLogInWithPublishPermissions: String = "logInWithPublishPermissions"
 private val methodLogInWithReadPermissions: String = "logInWithReadPermissions"
 private val methodLogOut: String = "logOut"
@@ -61,7 +56,7 @@ public class FacebookPlugin : MethodCallHandler {
     private var methodResult: Result? = null
 
     private var loginManager: LoginManager? = null
-    private var permissions: Array<String> = arrayOf("public_profile","email")
+    private var permissions: Array<String> = arrayOf("public_profile", "email")
     private var fields: String = "id,name,email"
 
     private var initialized: Boolean = false
@@ -77,7 +72,7 @@ public class FacebookPlugin : MethodCallHandler {
 
     companion object {
         @JvmStatic
-        fun registerWith(registrar: PluginRegistry.Registrar){
+        fun registerWith(registrar: PluginRegistry.Registrar) {
             var channel = MethodChannel(registrar.messenger(), channelName)
             channel.setMethodCallHandler(FacebookPlugin(registrar))
         }
@@ -94,10 +89,10 @@ public class FacebookPlugin : MethodCallHandler {
 
     }
 
-    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result){
-    //override fun onMethodCall(call: MethodCall?, result: Result?) {
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        //override fun onMethodCall(call: MethodCall?, result: Result?) {
 
-        when(call!!.method){
+        when (call!!.method) {
             methodLogInWithPublishPermissions -> {
                 methodResult = result
                 readArgs(call)
@@ -174,7 +169,7 @@ public class FacebookPlugin : MethodCallHandler {
         }
     }
 
-    fun readArgs(call: MethodCall){
+    fun readArgs(call: MethodCall) {
 
 
         if (call.hasArgument("permissions")) {
@@ -184,6 +179,7 @@ public class FacebookPlugin : MethodCallHandler {
 
         if (call.hasArgument("fields")) {
             fields = call.argument<String>("fields")!!
+            graphRequestPath = "me"
         }
 
         if (call.hasArgument("appLinkUrl")) {
@@ -198,12 +194,13 @@ public class FacebookPlugin : MethodCallHandler {
             this.graphRequestPath = call.argument<String>("graphRequestPath")!!
         }
 
-        if (call.hasArgument("graphRequestParameters") ) {
+        if (call.hasArgument("graphRequestParameters")) {
             var map = call.argument<Map<String, String>>("graphRequestParameters")!!
             graphRequestParameters.clear()
             for ((key, value) in map) {
-            graphRequestParameters.put(key, value)
-        }
+                graphRequestPath = key
+                graphRequestParameters.put(key, value)
+            }
         }
 
         if (call.hasArgument("videoUrl")) {
@@ -225,9 +222,9 @@ public class FacebookPlugin : MethodCallHandler {
 
     }
 
-    fun initSdk(){
+    fun initSdk() {
 
-        if(!this.initialized) {
+        if (!this.initialized) {
             try {
                 FacebookSdk.sdkInitialize(this.application)
                 this.loginManager = LoginManager.getInstance();
@@ -235,7 +232,7 @@ public class FacebookPlugin : MethodCallHandler {
                 this.loginManager!!.registerCallback(this.callbackManager, LoginCallback())
                 this.initialized = true
                 this.methodResult!!.success(mapOf("status" to "success"))
-            }catch (error: Exception){
+            } catch (error: Exception) {
                 var data = mapOf(
                         "status" to "error",
                         "message" to error!!.message
@@ -246,13 +243,13 @@ public class FacebookPlugin : MethodCallHandler {
 
     }
 
-    fun logInWithReadPermissions(){
+    fun logInWithReadPermissions() {
         var permissions = mutableListOf<String>()
         permissions.addAll(this.permissions)
         this.loginManager!!.logInWithReadPermissions(this.activity, permissions)
     }
 
-    fun logInWithPublishPermissions(){
+    fun logInWithPublishPermissions() {
         var permissions = mutableListOf<String>()
         permissions.addAll(this.permissions)
         this.loginManager!!.logInWithPublishPermissions(this.activity, permissions)
@@ -271,29 +268,29 @@ public class FacebookPlugin : MethodCallHandler {
 
     fun getAccessToken() {
         var current = AccessToken.getCurrentAccessToken()
-        if(current != null) {
+        if (current != null) {
             var accessToken = AccessToken.getCurrentAccessToken()
             this.methodResult!!.success(mapOf(
-              "token" to accessToken.token,
-              "userId" to accessToken.userId
+                    "token" to accessToken.token,
+                    "userId" to accessToken.userId
             ))
         } else {
             this.methodResult!!.success(null)
         }
     }
 
-    fun isInstalled(){
+    fun isInstalled() {
         var installed = isPackageFound("com.facebook.orca") || isPackageFound("com.facebook.katana") || isPackageFound("com.facebook.android")
         this.methodResult!!.success(installed)
     }
 
-    fun isPackageFound(targetPackage: String) : Boolean {
+    fun isPackageFound(targetPackage: String): Boolean {
 
         var packageManager = this.activity!!.packageManager;
 
         try {
             var info = packageManager.getPackageInfo(targetPackage, PackageManager.GET_META_DATA);
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             return false
         }
 
@@ -316,13 +313,15 @@ public class FacebookPlugin : MethodCallHandler {
 
             val callback = object : FacebookCallback<AppInviteDialog.Result> {
 
-                override fun  onSuccess(result: AppInviteDialog.Result) {
+                override fun onSuccess(result: AppInviteDialog.Result) {
                     methodResult!!.success(mapOf("status" to "success"))
                 }
-                override fun  onCancel() {
+
+                override fun onCancel() {
                     methodResult!!.success(mapOf("status" to "cancel"))
                 }
-                override fun  onError(e: FacebookException) {
+
+                override fun onError(e: FacebookException) {
                     methodResult!!.success(mapOf("status" to "error", "message" to e.message))
 
                 }
@@ -331,23 +330,25 @@ public class FacebookPlugin : MethodCallHandler {
             appInviteDialog.registerCallback(this.callbackManager, callback)
             appInviteDialog.show(content)
 
-        }else{
+        } else {
             this.methodResult!!.success(mapOf("status" to "success"))
         }
     }
 
-    fun shareContent(content: ShareContent<*, *>){
+    fun shareContent(content: ShareContent<*, *>) {
 
         var shareDialog = ShareDialog(this.activity)
 
         var shareCallback = object : FacebookCallback<Sharer.Result> {
-            override fun  onSuccess(result: Sharer.Result) {
+            override fun onSuccess(result: Sharer.Result) {
                 methodResult!!.success(mapOf("status" to "success"))
             }
-            override fun  onCancel() {
+
+            override fun onCancel() {
                 methodResult!!.success(mapOf("status" to "cancel"))
             }
-            override fun  onError(e: FacebookException) {
+
+            override fun onError(e: FacebookException) {
                 methodResult!!.success(mapOf("status" to "error", "message" to e.message))
             }
         }
@@ -371,7 +372,7 @@ public class FacebookPlugin : MethodCallHandler {
 
         var builder = SharePhotoContent.Builder()
 
-        for(it in this.sharePhotosUrl){
+        for (it in this.sharePhotosUrl) {
             var photo = SharePhoto.Builder()
                     .setImageUrl(Uri.parse(it))
             builder.addPhoto(photo.build())
@@ -387,12 +388,12 @@ public class FacebookPlugin : MethodCallHandler {
         this.shareContent(builder.build())
     }
 
-    fun requestGraphMe(){
-        this.graphPathRequest("me", mapOf("fields" to this.fields))
+    fun requestGraphMe() {
+        this.graphPathRequest(this.graphRequestPath, mapOf("fields" to this.fields))
     }
 
-    fun requestGraphPath(){
-        this.graphPathRequest(this.graphRequestPath, this.graphRequestParameters)
+    fun requestGraphPath() {
+        this.graphPathRequest(this.graphRequestPath, mapOf("fields" to this.graphRequestParameters.values.joinToString(separator = ",")))
     }
 
 
@@ -403,7 +404,7 @@ public class FacebookPlugin : MethodCallHandler {
 
         var accessToken = AccessToken.getCurrentAccessToken()
         var callback = GraphRequest.Callback { response ->
-            if(response?.error != null){
+            if (response?.error != null) {
                 //Log.e("FLUTTER FB", response?.error.errorMessage, response?.error.exception)
 
                 methodResult!!.success(mapOf("status" to "error", "message" to response?.error.errorMessage))
@@ -411,9 +412,9 @@ public class FacebookPlugin : MethodCallHandler {
                 //Log.i("FLUTTER FB", response.rawResponse)
                 var result: Any? = null
 
-                if(response.jsonObject != null){
+                if (response.jsonObject != null) {
                     result = toMap(response.jsonObject)
-                } else if (response.jsonArray != null){
+                } else if (response.jsonArray != null) {
                     result = toList(response.jsonArray)
                 }
 
@@ -424,10 +425,10 @@ public class FacebookPlugin : MethodCallHandler {
 
         var request = newGraphPathRequest(accessToken, graphPath, callback)
 
-        if(!parameters.isEmpty()) {
+        if (!parameters.isEmpty()) {
 
             var bundle = Bundle()
-            for((key, value) in parameters){
+            for ((key, value) in parameters) {
                 bundle.putString(key, value)
             }
 
@@ -469,7 +470,7 @@ public class FacebookPlugin : MethodCallHandler {
     }
 
     inner class ActivityHandler : Application.ActivityLifecycleCallbacks,
-        PluginRegistry.ActivityResultListener{
+            PluginRegistry.ActivityResultListener {
 
         override fun onActivityPaused(activity: Activity?) {
 
@@ -501,14 +502,14 @@ public class FacebookPlugin : MethodCallHandler {
 
         override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
 
-            if(FacebookSdk.isFacebookRequestCode(requestCode))
+            if (FacebookSdk.isFacebookRequestCode(requestCode))
                 callbackManager!!.onActivityResult(requestCode, resultCode, intent)
 
             return true
         }
     }
 
-    inner class LoginCallback: FacebookCallback<LoginResult> {
+    inner class LoginCallback : FacebookCallback<LoginResult> {
 
         override fun onSuccess(result: LoginResult?) {
             var data = mapOf(
@@ -536,3 +537,4 @@ public class FacebookPlugin : MethodCallHandler {
 
     }
 }
+
